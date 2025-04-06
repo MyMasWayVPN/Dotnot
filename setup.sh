@@ -179,7 +179,7 @@ function first_setup(){
             sudo apt-get install --no-install-recommends software-properties-common
             sudo add-apt-repository ppa:vbernat/haproxy-2.8 -y
             sudo apt-get update -y
-            sudo apt-get install haproxy=2.8.\*
+            sudo apt-get install haproxy=2.8.\* -y
         else
             echo -e "Your Ubuntu version ($VERSION) is not supported."
             exit 1
@@ -194,7 +194,7 @@ function first_setup(){
                 http://haproxy.debian.net buster-backports-2.8 main \
                 >/etc/apt/sources.list.d/haproxy.list
             sudo apt-get update -y
-            sudo apt-get -y install haproxy=2.8.\*
+            sudo apt-get -y install haproxy=2.8.\* -y
         elif [[ "$VERSION" == "11" ]]; then
             echo "Setup Dependencies for Debian $VERSION"
             curl -f https://haproxy.debian.net/haproxy-archive-keyring.gpg \
@@ -203,7 +203,7 @@ function first_setup(){
                 http://haproxy.debian.net bullseye-backports-2.8 main \
                 > /etc/apt/sources.list.d/haproxy.list
             sudo apt-get update -y
-            sudo apt-get install haproxy=2.8.\*
+            sudo apt-get install haproxy=2.8.\* -y
         elif [[ "$VERSION" == "12" ]]; then
             echo "Setup Dependencies for Debian $VERSION"
             curl -f https://haproxy.debian.net/haproxy-archive-keyring.gpg \
@@ -212,7 +212,7 @@ function first_setup(){
                 http://haproxy.debian.net bookworm-backports-2.8 main \
                 > /etc/apt/sources.list.d/haproxy.list
             sudo apt-get update -y
-            sudo apt-get install haproxy=2.8.\*
+            sudo apt-get install haproxy=2.8.\* -y
         else
             echo -e "Your Debian version ($VERSION) is not supported."
             exit 1
