@@ -2,6 +2,11 @@
 ```
 apt update && apt upgrade -y --fix-missing && update-grub && sleep 2 && apt install -y wget && apt install -y curl && apt install haproxy -y && apt install build-essential -y && apt-get install -y jq && apt-get install shc && apt install -y bzip2 gzip coreutils screen curl && wget https://raw.githubusercontent.com/mymaswayvpn/Dotnot/main/setup.sh && chmod +x setup.sh && ./setup.sh
 ```
+
+# INSTALL2 
+```
+apt update -y && apt install -y bzip2 gzip wget init coreutils openssl git screen curl jq && wget https://raw.githubusercontent.com/mymaswayvpn/Dotnot/main/setup.sh && chmod +x setup.sh && ./setup.sh
+```
 #
 #
 #
