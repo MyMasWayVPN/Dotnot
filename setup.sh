@@ -30,7 +30,6 @@ echo -e "${BIBlue}╰═══════════════════�
 echo ""
 sleep 4
 clear
-done
 rm -rf /etc/profil
 echo "MaWay" > /etc/profil
 echo ""
