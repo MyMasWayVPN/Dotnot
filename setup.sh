@@ -65,10 +65,7 @@ else
 fi
 
 # // Validate Successfull
-echo ""
-read -p "$( echo -e "Press ${GRAY}[ ${NC}${green}Enter${NC} ${GRAY}]${NC} For Starting Installation") "
-echo ""
-clear
+
 if [ "${EUID}" -ne 0 ]; then
 		echo "You need to run this script as root"
 		exit 1
@@ -160,7 +157,6 @@ print_install "Membuat direktori xray"
     export IP=$( curl -s https://ipinfo.io/ip/ )
 
 # Change Environment System
-# Change Environment System
 function first_setup(){
     timedatectl set-timezone Asia/Jakarta
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
@@ -176,10 +172,9 @@ function first_setup(){
         if [[ "$VERSION" == "20.04" || "$VERSION" == "22.04" || "$VERSION" == "24.04" ]]; then
             echo "Setup Dependencies for Ubuntu $VERSION"
             sudo apt update -y
-            sudo apt-get install --no-install-recommends software-properties-common
-            sudo add-apt-repository ppa:vbernat/haproxy-2.8 -y
-            sudo apt-get update -y
-            sudo apt-get -y install haproxy=2.8.\*
+            apt-get install --no-install-recommends software-properties-common
+            add-apt-repository ppa:vbernat/haproxy-2.0 -y
+            apt-get -y install haproxy=2.0.\*
         else
             echo -e "Your Ubuntu version ($VERSION) is not supported."
             exit 1
@@ -187,32 +182,15 @@ function first_setup(){
 
     # Pengecekan untuk Debian
     elif [[ "$DISTRO" == "Debian" ]]; then
-        if [[ "$VERSION" == "10" ]]; then
+        if [[ "$VERSION" == "10" || "$VERSION" == "11" || "$VERSION" == "12" ]]; then
             echo "Setup Dependencies for Debian $VERSION"
-            curl -f https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
+            curl https://haproxy.debian.net/bernat.debian.org.gpg |
+               gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
             echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
-                http://haproxy.debian.net buster-backports-2.8 main \
-                >/etc/apt/sources.list.d/haproxy.list
-            sudo apt-get update -y
-            sudo apt-get -y install haproxy=2.8.\*
-        elif [[ "$VERSION" == "11" ]]; then
-            echo "Setup Dependencies for Debian $VERSION"
-            curl -f https://haproxy.debian.net/haproxy-archive-keyring.gpg \
-                > /usr/share/keyrings/haproxy-archive-keyring.gpg
-            echo deb "[signed-by=/usr/share/keyrings/haproxy-archive-keyring.gpg]" \
-                http://haproxy.debian.net bullseye-backports-2.8 main \
-                > /etc/apt/sources.list.d/haproxy.list
-            sudo apt-get update -y
-            sudo apt-get -y install haproxy=2.8.\*
-        elif [[ "$VERSION" == "12" ]]; then
-            echo "Setup Dependencies for Debian $VERSION"
-            curl -f https://haproxy.debian.net/haproxy-archive-keyring.gpg \
-                > /usr/share/keyrings/haproxy-archive-keyring.gpg
-            echo deb "[signed-by=/usr/share/keyrings/haproxy-archive-keyring.gpg]" \
-                http://haproxy.debian.net bookworm-backports-2.8 main \
-                > /etc/apt/sources.list.d/haproxy.list
-            sudo apt-get update -y
-            sudo apt-get -y install haproxy=2.8.\*
+               http://haproxy.debian.net buster-backports-1.8 main \
+               >/etc/apt/sources.list.d/haproxy.list
+           sudo apt-get update
+           apt-get -y install haproxy=1.8.\*
         else
             echo -e "Your Debian version ($VERSION) is not supported."
             exit 1
@@ -251,8 +229,7 @@ function base_package() {
     apt install zip pwgen openssl netcat socat cron bash-completion -y
     apt install figlet -y
     apt update -y
-    apt upgrade -y
-    apt dist-upgrade -y
+    apt upgrade -y  apt dist-upgrade -y
     systemctl enable chronyd
     systemctl restart chronyd
     systemctl enable chrony
