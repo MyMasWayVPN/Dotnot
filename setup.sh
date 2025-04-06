@@ -1,4 +1,7 @@
 #!/bin/bash
+# Set non-interactive mode for entire script
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
 
 Green="\e[92;1m"
 RED="\033[31m"
@@ -195,24 +198,38 @@ function first_setup(){
     print_success "Directory Xray"
     # Install dependencies common to all supported OS
     echo "Setup Dependencies For ${OS_NAME}"
+    # Configure debconf to skip all interactive dialogs
+    echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+    
     sudo apt update -y
-    apt-get install --no-install-recommends software-properties-common -y
+    apt-get install -y --no-install-recommends \
+        software-properties-common \
+        debconf-utils
     
     # Install haproxy based on OS and version
     if [[ "$OS_ID" == "ubuntu" ]]; then
         if [[ "$OS_VERSION" == "24.04" ]]; then
             # Ubuntu Noble uses newer haproxy from main repo
-            apt-get -y install haproxy
+            apt-get -y -o Dpkg::Options::="--force-confdef" \
+                     -o Dpkg::Options::="--force-confold" \
+                     --no-install-recommends \
+                     install haproxy
         elif [[ " ${UBUNTU_SUPPORTED[@]} " =~ " ${OS_VERSION} " ]]; then
-            add-apt-repository ppa:vbernat/haproxy-2.8 -y
-            apt-get -y install haproxy=2.8.*
+            add-apt-repository -y ppa:vbernat/haproxy-2.8
+            apt-get -y -o Dpkg::Options::="--force-confdef" \
+                     -o Dpkg::Options::="--force-confold" \
+                     --no-install-recommends \
+                     install haproxy=2.8.*
         else
             echo -e "${EROR} Ubuntu version not supported (${YELLOW}${OS_NAME}${NC})"
             exit 1
         fi
     elif [[ "$OS_ID" == "debian" ]]; then
         if [[ "$OS_VERSION" == "10" ]]; then
-            apt-get -y install haproxy
+            apt-get -y -o Dpkg::Options::="--force-confdef" \
+                     -o Dpkg::Options::="--force-confold" \
+                     --no-install-recommends \
+                     install haproxy
         elif [[ "$OS_VERSION" =~ ^(11|12)$ ]]; then
             # For Debian 11/12, use backports repo
             curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg \
@@ -221,7 +238,10 @@ function first_setup(){
                 http://haproxy.debian.net ${OS_VERSION}-backports-2.8 main" \
                 > /etc/apt/sources.list.d/haproxy.list
             sudo apt-get update
-            apt-get -y install haproxy=2.8.*
+            apt-get -y -o Dpkg::Options::="--force-confdef" \
+                     -o Dpkg::Options::="--force-confold" \
+                     --no-install-recommends \
+                     install haproxy=2.8.*
         else
             echo -e "${EROR} Debian version not supported (${YELLOW}${OS_NAME}${NC})"
             exit 1
