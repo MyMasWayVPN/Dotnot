@@ -171,10 +171,7 @@ function first_setup(){
     if [[ "$DISTRO" == "Ubuntu" ]]; then
         if [[ "$VERSION" == "20.04" || "$VERSION" == "22.04" || "$VERSION" == "24.04" ]]; then
             echo "Setup Dependencies for Ubuntu $VERSION"
-            sudo apt update -y
-            apt-get install --no-install-recommends software-properties-common
-            add-apt-repository ppa:vbernat/haproxy-2.0 -y
-            apt-get -y install haproxy=2.0.\*
+            sudo apt install haproxy -y
         else
             echo -e "Your Ubuntu version ($VERSION) is not supported."
             exit 1
@@ -184,13 +181,7 @@ function first_setup(){
     elif [[ "$DISTRO" == "Debian" ]]; then
         if [[ "$VERSION" == "10" || "$VERSION" == "11" || "$VERSION" == "12" ]]; then
             echo "Setup Dependencies for Debian $VERSION"
-            curl https://haproxy.debian.net/bernat.debian.org.gpg |
-               gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
-            echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
-               http://haproxy.debian.net buster-backports-1.8 main \
-               >/etc/apt/sources.list.d/haproxy.list
-           sudo apt-get update
-           apt-get -y install haproxy=1.8.\*
+            sudo apt install haproxy -y
         else
             echo -e "Your Debian version ($VERSION) is not supported."
             exit 1
@@ -239,6 +230,8 @@ function base_package() {
     apt install ntpdate -y
     ntpdate pool.ntp.org
     apt install sudo -y
+	apt install 7zip -y
+	apt install socat -y
     sudo apt-get clean all
     sudo apt-get autoremove -y
     sudo apt-get install -y debconf-utils
@@ -592,6 +585,7 @@ clear
 function ins_SSHD(){
 clear
 print_install "Memasang SSHD"
+sudo rm -rf /etc/ssh/sshd_config
 wget -q -O /etc/ssh/sshd_config "${REPO}files/sshd" >/dev/null 2>&1
 chmod 700 /etc/ssh/sshd_config
 /etc/init.d/ssh restart
