@@ -1,6 +1,6 @@
 [Unit]
 Description=WebSocket
-Documentation=https://github.com/mymaswayvpn
+Documentation=https://github.com/jaka1m
 After=syslog.target network-online.target
 
 [Service]

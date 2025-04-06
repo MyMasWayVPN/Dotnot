@@ -1,7 +1,4 @@
 #!/bin/bash
-# Set non-interactive mode for entire script
-export DEBIAN_FRONTEND=noninteractive
-export NEEDRESTART_MODE=a
 
 Green="\e[92;1m"
 RED="\033[31m"
@@ -33,15 +30,9 @@ echo -e "${BIBlue}╰═══════════════════�
 echo ""
 sleep 4
 clear
-echo -e "${BIBlue}╭══════════════════════════════════════════╮${NC}"
-echo -e "${BIBlue}│ ${BGCOLOR}             MASUKKAN NAMA KAMU         ${NC}${BIBlue} │${NC}"
-echo -e "${BIBlue}╰══════════════════════════════════════════╯${NC}"
-echo " "
-until [[ $name =~ ^[a-zA-Z0-9_.-]+$ ]]; do
-read -rp "Masukan Nama Kamu Disini tanpa spasi : " -e name
 done
 rm -rf /etc/profil
-echo "$name" > /etc/profil
+echo "MaWay" > /etc/profil
 echo ""
 clear
 author=$(cat /etc/profil)
@@ -57,34 +48,13 @@ else
     exit 1
 fi
 
-# // Mengecek Sistem Operasi
-OS_ID=$(grep -w ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
-OS_VERSION=$(grep -w VERSION_ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
-OS_NAME=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
-
-# Daftar versi yang didukung
-UBUNTU_SUPPORTED=("20.04" "22.04" "23.04" "23.10" "24.04")
-DEBIAN_SUPPORTED=("10" "11" "12")
-
-if [[ "$OS_ID" == "ubuntu" ]]; then
-    if [[ " ${UBUNTU_SUPPORTED[@]} " =~ " ${OS_VERSION} " ]]; then
-        echo -e "${OK} OS Anda Didukung ( ${green}${OS_NAME}${NC} )"
-    else
-        echo -e "${EROR} Versi Ubuntu Anda Tidak Didukung ( ${YELLOW}${OS_NAME}${NC} )"
-        echo -e "${INFO} Versi yang didukung: ${CYAN}${UBUNTU_SUPPORTED[@]}${NC}"
-        exit 1
-    fi
-elif [[ "$OS_ID" == "debian" ]]; then
-    if [[ " ${DEBIAN_SUPPORTED[@]} " =~ " ${OS_VERSION} " ]]; then
-        echo -e "${OK} OS Anda Didukung ( ${green}${OS_NAME}${NC} )"
-    else
-        echo -e "${EROR} Versi Debian Anda Tidak Didukung ( ${YELLOW}${OS_NAME}${NC} )"
-        echo -e "${INFO} Versi yang didukung: ${CYAN}${DEBIAN_SUPPORTED[@]}${NC}"
-        exit 1
-    fi
+# // Checking System
+if [[ $( cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g' ) == "ubuntu" ]]; then
+    echo -e "${OK} Your OS Is Supported ( ${green}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
+elif [[ $( cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g' ) == "debian" ]]; then
+    echo -e "${OK} Your OS Is Supported ( ${green}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
 else
-    echo -e "${EROR} OS Anda Tidak Didukung ( ${YELLOW}${OS_NAME}${NC} )"
-    echo -e "${INFO} Hanya Ubuntu dan Debian yang didukung"
+    echo -e "${EROR} Your OS Is Not Supported ( ${YELLOW}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
     exit 1
 fi
 
@@ -191,66 +161,71 @@ print_install "Membuat direktori xray"
     export IP=$( curl -s https://ipinfo.io/ip/ )
 
 # Change Environment System
+# Change Environment System
 function first_setup(){
     timedatectl set-timezone Asia/Jakarta
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
     echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
     print_success "Directory Xray"
-    # Install dependencies common to all supported OS
-    echo "Setup Dependencies For ${OS_NAME}"
-    # Configure debconf to skip all interactive dialogs
-    echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
-    
-    sudo apt update -y
-    apt-get install -y --no-install-recommends \
-        software-properties-common \
-        debconf-utils
-    
-    # Install haproxy based on OS and version
-    if [[ "$OS_ID" == "ubuntu" ]]; then
-        if [[ "$OS_VERSION" == "24.04" ]]; then
-            # Ubuntu Noble uses newer haproxy from main repo
-            apt-get -y -o Dpkg::Options::="--force-confdef" \
-                     -o Dpkg::Options::="--force-confold" \
-                     --no-install-recommends \
-                     install haproxy
-        elif [[ " ${UBUNTU_SUPPORTED[@]} " =~ " ${OS_VERSION} " ]]; then
-            add-apt-repository -y ppa:vbernat/haproxy-2.8
-            apt-get -y -o Dpkg::Options::="--force-confdef" \
-                     -o Dpkg::Options::="--force-confold" \
-                     --no-install-recommends \
-                     install haproxy=2.8.*
+
+    # Menentukan distribusi dan versi dari OS
+    DISTRO=$(lsb_release -i | awk -F: '{print $2}' | xargs)
+    VERSION=$(lsb_release -r | awk -F: '{print $2}' | xargs)
+
+    # Pengecekan untuk Ubuntu
+    if [[ "$DISTRO" == "Ubuntu" ]]; then
+        if [[ "$VERSION" == "20.04" || "$VERSION" == "22.04" || "$VERSION" == "24.04" ]]; then
+            echo "Setup Dependencies for Ubuntu $VERSION"
+            sudo apt update -y
+            sudo apt-get install --no-install-recommends software-properties-common
+            sudo add-apt-repository ppa:vbernat/haproxy-2.8 -y
+            sudo apt-get update -y
+            sudo apt-get install haproxy=2.8.\*
         else
-            echo -e "${EROR} Ubuntu version not supported (${YELLOW}${OS_NAME}${NC})"
+            echo -e "Your Ubuntu version ($VERSION) is not supported."
             exit 1
         fi
-    elif [[ "$OS_ID" == "debian" ]]; then
-        if [[ "$OS_VERSION" == "10" ]]; then
-            apt-get -y -o Dpkg::Options::="--force-confdef" \
-                     -o Dpkg::Options::="--force-confold" \
-                     --no-install-recommends \
-                     install haproxy
-        elif [[ "$OS_VERSION" =~ ^(11|12)$ ]]; then
-            # For Debian 11/12, use backports repo
-            curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg \
-                | gpg --dearmor > /usr/share/keyrings/haproxy.debian.net.gpg
-            echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] \
-                http://haproxy.debian.net ${OS_VERSION}-backports-2.8 main" \
+
+    # Pengecekan untuk Debian
+    elif [[ "$DISTRO" == "Debian" ]]; then
+        if [[ "$VERSION" == "10" ]]; then
+            echo "Setup Dependencies for Debian $VERSION"
+            curl -f https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
+            echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
+                http://haproxy.debian.net buster-backports-2.8 main \
+                >/etc/apt/sources.list.d/haproxy.list
+            sudo apt-get update -y
+            sudo apt-get -y install haproxy=2.8.\*
+        elif [[ "$VERSION" == "11" ]]; then
+            echo "Setup Dependencies for Debian $VERSION"
+            curl -f https://haproxy.debian.net/haproxy-archive-keyring.gpg \
+                > /usr/share/keyrings/haproxy-archive-keyring.gpg
+            echo deb "[signed-by=/usr/share/keyrings/haproxy-archive-keyring.gpg]" \
+                http://haproxy.debian.net bullseye-backports-2.8 main \
                 > /etc/apt/sources.list.d/haproxy.list
-            sudo apt-get update
-            apt-get -y -o Dpkg::Options::="--force-confdef" \
-                     -o Dpkg::Options::="--force-confold" \
-                     --no-install-recommends \
-                     install haproxy=2.8.*
+            sudo apt-get update -y
+            sudo apt-get install haproxy=2.8.\*
+        elif [[ "$VERSION" == "12" ]]; then
+            echo "Setup Dependencies for Debian $VERSION"
+            curl -f https://haproxy.debian.net/haproxy-archive-keyring.gpg \
+                > /usr/share/keyrings/haproxy-archive-keyring.gpg
+            echo deb "[signed-by=/usr/share/keyrings/haproxy-archive-keyring.gpg]" \
+                http://haproxy.debian.net bookworm-backports-2.8 main \
+                > /etc/apt/sources.list.d/haproxy.list
+            sudo apt-get update -y
+            sudo apt-get install haproxy=2.8.\*
         else
-            echo -e "${EROR} Debian version not supported (${YELLOW}${OS_NAME}${NC})"
+            echo -e "Your Debian version ($VERSION) is not supported."
             exit 1
         fi
+
     else
-        echo -e "${EROR} OS not supported (${YELLOW}${OS_NAME}${NC})"
+        echo -e "Your OS ($DISTRO) is not supported. ($VERSION)"
         exit 1
     fi
 }
+
+
 
 # GEO PROJECT
 clear
@@ -288,14 +263,15 @@ function base_package() {
     apt install ntpdate -y
     ntpdate pool.ntp.org
     apt install sudo -y
-    apt install p7zip-full -y
-    apt-get clean all
-    apt-get install -y socat debconf-utils software-properties-common
-    apt-get remove --purge -y exim4 ufw firewalld
-    apt-get autoremove -y --purge
+    sudo apt-get clean all
+    sudo apt-get autoremove -y
+    sudo apt-get install -y debconf-utils
+    sudo apt-get remove --purge exim4 -y
+    sudo apt-get remove --purge ufw firewalld -y
+    sudo apt-get install -y --no-install-recommends software-properties-common
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
     echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-    apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip libc6 util-linux msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent netfilter-persistent net-tools openssl gnupg gnupg2 lsb-release shc cmake git xz-utils apt-transport-https gnupg1 dnsutils bash-completion ntpdate chrony jq openvpn easy-rsa
+    sudo apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip libc6 util-linux build-essential msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent netfilter-persistent net-tools openssl ca-certificates gnupg gnupg2 ca-certificates lsb-release gcc shc make cmake git screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq openvpn easy-rsa
     print_success "Packet Yang Dibutuhkan"
     
 }
@@ -378,8 +354,8 @@ else
 sts="${Error}"
 fi
 TIMES="10"
-CHATID="6738683139"
-KEY="7608197185:AAG4uOUPdrGDvLSOHelKXuSv2gmii6UfbgA"
+CHATID="-702916090"
+KEY="6782550545:AAEQJCiVZvTvu-2vvd5z4I4I4V7-W3lwIyM"
 URL="https://api.telegram.org/bot$KEY/sendMessage"
     TIMEZONE=$(printf '%(%H:%M:%S)T')
     TEXT="
@@ -602,7 +578,7 @@ print_success "Password SSH"
 function udp_mini(){
 clear
 print_install "Memasang Service Limit IP & Quota"
-wget -q https://raw.githubusercontent.com/mymaswayvpn/Dotnot/main/config/mw-tunnel && chmod +x mw-tunnel && ./mw-tunnel
+wget -q https://raw.githubusercontent.com/mymaswayvpn/Dotnot/main/config/fv-tunnel && chmod +x fv-tunnel && ./fv-tunnel
 
 # // Installing UDP Mini
 mkdir -p /usr/local/kyt/
@@ -862,7 +838,9 @@ history -c
 echo "unset HISTFILE" >> /etc/profile
 
 cd
-rm -f /root/{openvpn,key.pem,cert.pem,*.zip,*.sh,LICENSE,README.md,domain}
+rm -f /root/openvpn
+rm -f /root/key.pem
+rm -f /root/cert.pem
 print_success "All Packet"
 }
 
@@ -1065,7 +1043,7 @@ print_install "Enable Service"
     systemctl enable --now cron
     systemctl enable --now netfilter-persistent
     systemctl restart nginx
-    systemctl restart xray 
+    systemctl restart xray
     systemctl restart cron
     systemctl restart haproxy
     print_success "Enable Service"

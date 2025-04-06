@@ -1,6 +1,6 @@
 [Unit]
 Description=UDP 7200
-Documentation=https://masway.com
+Documentation=https://geovpn.net
 After=syslog.target network-online.target
 
 [Service]
