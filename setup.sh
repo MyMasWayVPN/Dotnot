@@ -82,7 +82,9 @@ MYIP=$(curl -sS ipv4.icanhazip.com)
 echo -e "\e[32mloading...\e[0m"
 clear
 apt install ruby -y
-gem install lolcat
+gem install lolcat -y
+apt install 7zip -y
+apt install p7zip-full -y
 apt install wondershaper -y
 clear
 # REPO    
@@ -230,8 +232,6 @@ function base_package() {
     apt install ntpdate -y
     ntpdate pool.ntp.org
     apt install sudo -y
-	apt install 7zip -y
-	apt install socat -y
     sudo apt-get clean all
     sudo apt-get autoremove -y
     sudo apt-get install -y debconf-utils
