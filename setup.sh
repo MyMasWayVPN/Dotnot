@@ -54,13 +54,34 @@ else
     exit 1
 fi
 
-# // Checking System
-if [[ $( cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g' ) == "ubuntu" ]]; then
-    echo -e "${OK} Your OS Is Supported ( ${green}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
-elif [[ $( cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g' ) == "debian" ]]; then
-    echo -e "${OK} Your OS Is Supported ( ${green}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
+# // Mengecek Sistem Operasi
+OS_ID=$(grep -w ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+OS_VERSION=$(grep -w VERSION_ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+OS_NAME=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+
+# Daftar versi yang didukung
+UBUNTU_SUPPORTED=("20.04" "22.04" "23.04" "23.10" "24.04")
+DEBIAN_SUPPORTED=("10" "11" "12")
+
+if [[ "$OS_ID" == "ubuntu" ]]; then
+    if [[ " ${UBUNTU_SUPPORTED[@]} " =~ " ${OS_VERSION} " ]]; then
+        echo -e "${OK} OS Anda Didukung ( ${green}${OS_NAME}${NC} )"
+    else
+        echo -e "${EROR} Versi Ubuntu Anda Tidak Didukung ( ${YELLOW}${OS_NAME}${NC} )"
+        echo -e "${INFO} Versi yang didukung: ${CYAN}${UBUNTU_SUPPORTED[@]}${NC}"
+        exit 1
+    fi
+elif [[ "$OS_ID" == "debian" ]]; then
+    if [[ " ${DEBIAN_SUPPORTED[@]} " =~ " ${OS_VERSION} " ]]; then
+        echo -e "${OK} OS Anda Didukung ( ${green}${OS_NAME}${NC} )"
+    else
+        echo -e "${EROR} Versi Debian Anda Tidak Didukung ( ${YELLOW}${OS_NAME}${NC} )"
+        echo -e "${INFO} Versi yang didukung: ${CYAN}${DEBIAN_SUPPORTED[@]}${NC}"
+        exit 1
+    fi
 else
-    echo -e "${EROR} Your OS Is Not Supported ( ${YELLOW}$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g' )${NC} )"
+    echo -e "${EROR} OS Anda Tidak Didukung ( ${YELLOW}${OS_NAME}${NC} )"
+    echo -e "${INFO} Hanya Ubuntu dan Debian yang didukung"
     exit 1
 fi
 
@@ -172,25 +193,43 @@ function first_setup(){
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
     echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
     print_success "Directory Xray"
-    if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
-    echo "Setup Dependencies $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
+    # Install dependencies common to all supported OS
+    echo "Setup Dependencies For ${OS_NAME}"
     sudo apt update -y
-    apt-get install --no-install-recommends software-properties-common
-    add-apt-repository ppa:vbernat/haproxy-2.8 -y
-    apt-get -y install haproxy=2.8.\*
-elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
-    echo "Setup Dependencies For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
-    curl https://haproxy.debian.net/bernat.debian.org.gpg |
-        gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
-    echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
-        http://haproxy.debian.net bookworm-backports-2.8 main \
-        >/etc/apt/sources.list.d/haproxy.list
-    sudo apt-get update
-    apt-get -y install haproxy=2.8.\*
-else
-    echo -e " Your OS Is Not Supported ($(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g') )"
-    exit 1
-fi
+    apt-get install --no-install-recommends software-properties-common -y
+    
+    # Install haproxy based on OS and version
+    if [[ "$OS_ID" == "ubuntu" ]]; then
+        if [[ "$OS_VERSION" == "24.04" ]]; then
+            # Ubuntu Noble uses newer haproxy from main repo
+            apt-get -y install haproxy
+        elif [[ " ${UBUNTU_SUPPORTED[@]} " =~ " ${OS_VERSION} " ]]; then
+            add-apt-repository ppa:vbernat/haproxy-2.8 -y
+            apt-get -y install haproxy=2.8.*
+        else
+            echo -e "${EROR} Ubuntu version not supported (${YELLOW}${OS_NAME}${NC})"
+            exit 1
+        fi
+    elif [[ "$OS_ID" == "debian" ]]; then
+        if [[ "$OS_VERSION" == "10" ]]; then
+            apt-get -y install haproxy
+        elif [[ "$OS_VERSION" =~ ^(11|12)$ ]]; then
+            # For Debian 11/12, use backports repo
+            curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg \
+                | gpg --dearmor > /usr/share/keyrings/haproxy.debian.net.gpg
+            echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] \
+                http://haproxy.debian.net ${OS_VERSION}-backports-2.8 main" \
+                > /etc/apt/sources.list.d/haproxy.list
+            sudo apt-get update
+            apt-get -y install haproxy=2.8.*
+        else
+            echo -e "${EROR} Debian version not supported (${YELLOW}${OS_NAME}${NC})"
+            exit 1
+        fi
+    else
+        echo -e "${EROR} OS not supported (${YELLOW}${OS_NAME}${NC})"
+        exit 1
+    fi
 }
 
 # GEO PROJECT
@@ -231,6 +270,7 @@ function base_package() {
     apt install sudo -y
     apt install p7zip-full -y
     sudo apt-get clean all
+    sudo apt install socat -y
     sudo apt-get autoremove -y
     sudo apt-get install -y debconf-utils
     sudo apt-get remove --purge exim4 -y
